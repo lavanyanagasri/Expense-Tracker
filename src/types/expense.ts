@@ -18,6 +18,8 @@ export type Expense = {
   category: ExpenseCategory;
   date: string;
   notes?: string;
+  synced?: boolean; // Flag for future cloud sync functionality
+  createdAt?: string; // Timestamp when the expense was created
 };
 
 export type ExpenseSummary = {

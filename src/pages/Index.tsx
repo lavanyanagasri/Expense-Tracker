@@ -13,26 +13,38 @@ import {
 
 const Index = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Load expenses from localStorage on component mount
+  // Load expenses from storage on component mount
   useEffect(() => {
-    const storedExpenses = loadExpensesFromStorage();
-    setExpenses(storedExpenses);
-    saveActivityToCookie();
+    const fetchExpenses = async () => {
+      setIsLoading(true);
+      try {
+        const storedExpenses = await loadExpensesFromStorage();
+        setExpenses(storedExpenses);
+        saveActivityToCookie();
+      } catch (error) {
+        console.error("Failed to load expenses:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchExpenses();
   }, []);
   
   // Add a new expense
-  const handleAddExpense = (expense: Expense) => {
+  const handleAddExpense = async (expense: Expense) => {
     const updatedExpenses = [expense, ...expenses];
     setExpenses(updatedExpenses);
-    saveExpensesToStorage(updatedExpenses);
+    await saveExpensesToStorage(updatedExpenses);
   };
   
   // Delete an expense
-  const handleDeleteExpense = (id: string) => {
+  const handleDeleteExpense = async (id: string) => {
     const updatedExpenses = expenses.filter(expense => expense.id !== id);
     setExpenses(updatedExpenses);
-    saveExpensesToStorage(updatedExpenses);
+    await saveExpensesToStorage(updatedExpenses);
     saveActivityToCookie();
   };
 
@@ -47,11 +59,19 @@ const Index = () => {
           </div>
           
           <div className="lg:col-span-2 space-y-6">
-            <ExpenseChart expenses={expenses} />
-            <ExpenseList 
-              expenses={expenses} 
-              onDeleteExpense={handleDeleteExpense} 
-            />
+            {isLoading ? (
+              <div className="h-[300px] flex items-center justify-center bg-card border border-border/50 rounded-2xl p-6 shadow-sm">
+                <div className="text-muted-foreground">Loading your expenses...</div>
+              </div>
+            ) : (
+              <>
+                <ExpenseChart expenses={expenses} />
+                <ExpenseList 
+                  expenses={expenses} 
+                  onDeleteExpense={handleDeleteExpense} 
+                />
+              </>
+            )}
           </div>
         </div>
       </main>

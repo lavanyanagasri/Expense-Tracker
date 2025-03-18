@@ -1,31 +1,103 @@
 
 import { Expense } from "../types/expense";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 const STORAGE_KEY = "expense-tracker-data";
 const COOKIE_KEY = "expense-tracker-session";
+const DB_NAME = "expense-tracker-db";
+const DB_VERSION = 1;
+const STORE_NAME = "expenses";
 
 /**
- * Save expenses to local storage
+ * IndexedDB Operations
  */
-export const saveExpensesToStorage = (expenses: Expense[]): void => {
+const initializeDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    
+    request.onerror = (event) => {
+      console.error("IndexedDB error:", event);
+      reject("Could not open database");
+    };
+    
+    request.onsuccess = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      resolve(db);
+    };
+    
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      }
+    };
+  });
+};
+
+/**
+ * Save expenses to IndexedDB (primary) and localStorage (fallback)
+ */
+export const saveExpensesToStorage = async (expenses: Expense[]): Promise<void> => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+    // Try IndexedDB first
+    try {
+      const db = await initializeDB();
+      const transaction = db.transaction(STORE_NAME, "readwrite");
+      const store = transaction.objectStore(STORE_NAME);
+      
+      // Clear existing data
+      store.clear();
+      
+      // Add all expenses
+      expenses.forEach(expense => {
+        store.add(expense);
+      });
+      
+      transaction.oncomplete = () => {
+        db.close();
+      };
+    } catch (indexedDBError) {
+      console.warn("IndexedDB save failed, using localStorage as fallback:", indexedDBError);
+      // Fall back to localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+    }
   } catch (error) {
-    console.error("Error saving expenses to local storage:", error);
+    console.error("Error saving expenses:", error);
     toast.error("Failed to save your expenses");
   }
 };
 
 /**
- * Load expenses from local storage
+ * Load expenses from IndexedDB (primary) or localStorage (fallback)
  */
-export const loadExpensesFromStorage = (): Expense[] => {
+export const loadExpensesFromStorage = async (): Promise<Expense[]> => {
   try {
-    const storedData = localStorage.getItem(STORAGE_KEY);
-    return storedData ? JSON.parse(storedData) : [];
+    // Try IndexedDB first
+    try {
+      const db = await initializeDB();
+      return new Promise((resolve) => {
+        const transaction = db.transaction(STORE_NAME, "readonly");
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+        
+        request.onsuccess = () => {
+          db.close();
+          resolve(request.result || []);
+        };
+        
+        request.onerror = () => {
+          db.close();
+          resolve([]);
+        };
+      });
+    } catch (indexedDBError) {
+      console.warn("IndexedDB load failed, using localStorage as fallback:", indexedDBError);
+      // Fall back to localStorage
+      const storedData = localStorage.getItem(STORAGE_KEY);
+      return storedData ? JSON.parse(storedData) : [];
+    }
   } catch (error) {
-    console.error("Error loading expenses from local storage:", error);
+    console.error("Error loading expenses:", error);
     toast.error("Failed to load your expenses");
     return [];
   }

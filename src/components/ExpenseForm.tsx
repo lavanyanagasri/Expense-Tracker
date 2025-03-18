@@ -59,6 +59,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ onAddExpense, className }) =>
       category,
       date,
       notes: notes || undefined,
+      synced: false,
+      createdAt: new Date().toISOString(),
     };
 
     onAddExpense(newExpense);
