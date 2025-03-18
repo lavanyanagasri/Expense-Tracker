@@ -13,6 +13,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { PlusIcon } from 'lucide-react';
+import AuthDialog from '@/components/auth/AuthDialog';
 
 const Index = () => {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
@@ -71,6 +72,20 @@ const Index = () => {
     saveActivityToCookie();
   };
 
+  // Handle Get Started button click
+  const handleGetStartedClick = () => {
+    if (isAuthenticated) {
+      // User is already authenticated, scroll to expense form
+      const expenseFormElement = document.querySelector('.expense-form-container');
+      if (expenseFormElement) {
+        expenseFormElement.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      // User is not authenticated, open auth dialog
+      setAuthDialogOpen(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background bg-gradient-to-br from-background to-secondary/20">
       <Header />
@@ -78,7 +93,7 @@ const Index = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
         {isAuthenticated ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 expense-form-container">
               <ExpenseForm onAddExpense={handleAddExpense} />
             </div>
             
@@ -126,7 +141,7 @@ const Index = () => {
             <Button 
               size="lg" 
               className="gap-2"
-              onClick={() => setAuthDialogOpen(true)}
+              onClick={handleGetStartedClick}
             >
               <PlusIcon size={16} />
               Get Started
@@ -134,6 +149,8 @@ const Index = () => {
           </div>
         )}
       </main>
+      
+      <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
     </div>
   );
 };
