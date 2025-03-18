@@ -20,6 +20,7 @@ export type Expense = {
   notes?: string;
   synced?: boolean; // Flag for future cloud sync functionality
   createdAt?: string; // Timestamp when the expense was created
+  userId?: string; // ID of the user who created the expense
 };
 
 export type ExpenseSummary = {

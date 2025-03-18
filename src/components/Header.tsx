@@ -1,12 +1,19 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
+import AuthDialog from './auth/AuthDialog';
+import { LogOut, User } from 'lucide-react';
 
 interface HeaderProps {
   className?: string;
 }
 
 const Header: React.FC<HeaderProps> = ({ className }) => {
+  const { user, isAuthenticated, logout } = useAuth();
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+
   return (
     <header className={cn(
       "w-full py-6 px-8 flex items-center justify-between",
@@ -40,9 +47,38 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
         </span>
       </div>
       
-      <div className="text-sm text-muted-foreground bg-secondary px-3 py-1 rounded-full">
-        {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+      <div className="flex items-center gap-4">
+        <div className="text-sm text-muted-foreground bg-secondary px-3 py-1 rounded-full">
+          {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+        </div>
+        
+        {isAuthenticated ? (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-secondary/50 px-3 py-1 rounded-full text-sm">
+              <User size={14} />
+              <span>{user?.name || user?.email}</span>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={logout}
+              title="Logout"
+            >
+              <LogOut size={16} />
+            </Button>
+          </div>
+        ) : (
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={() => setAuthDialogOpen(true)}
+          >
+            Login
+          </Button>
+        )}
       </div>
+      
+      <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
     </header>
   );
 };
